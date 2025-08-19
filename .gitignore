@@ -20,7 +20,7 @@ coverage/
 # Prisma
 prisma/dev.db
 prisma/test.db
-prisma/migrations/
+#prisma/migrations/
 
 # Logs
 logs
