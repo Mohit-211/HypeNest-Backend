@@ -134,12 +134,12 @@ model Proposal {
 model Message {
   id          String   @id @default(cuid())
   campaignId  String
-  fromUserId  String
+  fromUserId  String?          // <-- nullable to support onDelete: SetNull
   content     String
   createdAt   DateTime @default(now())
 
   campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade, map: "fk_message_campaign")
-  fromUser    User     @relation(fields: [fromUserId], references: [id], onDelete: SetNull, map: "fk_message_user")
+  fromUser    User?    @relation(fields: [fromUserId], references: [id], onDelete: SetNull, map: "fk_message_user")
 
   @@index([campaignId])
   @@index([fromUserId])
@@ -153,7 +153,6 @@ model Review {
   comment    String?
   createdAt  DateTime @default(now())
 
-  // Explicit relation names for clarity
   creator    Creator  @relation("CreatorReviews", fields: [creatorId], references: [id], onDelete: Cascade, map: "fk_review_creator")
   brand      Brand    @relation("BrandReviews",   fields: [brandId],   references: [id], onDelete: Cascade, map: "fk_review_brand")
 
