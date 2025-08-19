@@ -40,7 +40,7 @@ enum ProposalStatus {
 //////////////////////////////////////////////////////
 
 model User {
-  id         String   @id @default(cuid())
+  id           Int       @id @default(autoincrement())
   name       String
   isVerified Boolean  @default(false)
   email      String   @unique
@@ -48,6 +48,10 @@ model User {
   role       Role
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  // back-reference to messages sent by this user
+  messagesSent Message[] @relation("MessageFromUser")
+
 
   // Optional associations (one user belongs to either a Brand or a Creator account)
   brandId    String?
@@ -147,14 +151,16 @@ model Proposal {
 }
 
 model Message {
-  id          String   @id @default(cuid())
-  campaignId  String
-  fromUserId  String?          // <-- nullable to support onDelete: SetNull
+  id          Int       @id @default(autoincrement())
+  campaignId  Int
+  fromUserId  Int?      // nullable because onDelete: SetNull
   content     String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
-  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade, map: "fk_message_campaign")
-  fromUser    User?    @relation(fields: [fromUserId], references: [id], onDelete: SetNull, map: "fk_message_user")
+  campaign    Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade, map: "fk_message_campaign")
+
+  // name the relation and point to fromUserId
+  fromUser    User?     @relation("MessageFromUser", fields: [fromUserId], references: [id], onDelete: SetNull, map:"fk_message_user")
 
   @@index([campaignId])
   @@index([fromUserId])
