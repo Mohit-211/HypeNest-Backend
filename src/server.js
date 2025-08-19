@@ -3,8 +3,15 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 
+const allowed = ["https://new.hypenestmedia.com", "https://hypenestmedia.com"];
 const app = express();
-app.use(cors({ origin: true, credentials: true }));
+app.use(
+  cors({
+    origin: (origin, cb) => cb(null, !origin || allowed.includes(origin)),
+    credentials: true,
+  })
+);
+app.options("*", cors()); // handle preflight
 app.use(express.json());
 app.use(cookieParser());
 
