@@ -41,36 +41,36 @@ enum ProposalStatus {
 
 model User {
   id           Int       @id @default(autoincrement())
-  name       String
-  isVerified Boolean  @default(false)
-  email      String   @unique
-  password   String
-  role       Role
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  name         String
+  isVerified   Boolean   @default(false)
+  email        String    @unique
+  password     String
+  role         Role
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  // back-reference to messages sent by this user
+  // Back-reference to messages sent by this user
   messagesSent Message[] @relation("MessageFromUser")
 
-
   // Optional associations (one user belongs to either a Brand or a Creator account)
-  brandId    String?
-  creatorId  String?
+  brandId      String?
+  creatorId    String?
 
-  brand      Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull, map: "fk_user_brand")
-  creator    Creator? @relation(fields: [creatorId], references: [id], onDelete: SetNull, map: "fk_user_creator")
+  brand        Brand?    @relation(fields: [brandId], references: [id], onDelete: SetNull, map: "fk_user_brand")
+  creator      Creator?  @relation(fields: [creatorId], references: [id], onDelete: SetNull, map: "fk_user_creator")
+
+  // Relation to OTPs
+  otps         OTP[]
 
   @@index([brandId])
   @@index([creatorId])
-  // Relation to OTPs
-  otps OTP[]
 }
 
 model OTP {
   id        String   @id @default(cuid())
   code      String
   expiresAt DateTime
-  userId    String
+  userId    Int                          // matches User.id (Int)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_otp_user")
   createdAt DateTime @default(now())
 
@@ -152,15 +152,13 @@ model Proposal {
 
 model Message {
   id          Int       @id @default(autoincrement())
-  campaignId  Int
-  fromUserId  Int?      // nullable because onDelete: SetNull
+  campaignId  String                 // matches Campaign.id (String)
+  fromUserId  Int?                   // nullable because onDelete: SetNull
   content     String
   createdAt   DateTime  @default(now())
 
   campaign    Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade, map: "fk_message_campaign")
-
-  // name the relation and point to fromUserId
-  fromUser    User?     @relation("MessageFromUser", fields: [fromUserId], references: [id], onDelete: SetNull, map:"fk_message_user")
+  fromUser    User?     @relation("MessageFromUser", fields: [fromUserId], references: [id], onDelete: SetNull, map: "fk_message_user")
 
   @@index([campaignId])
   @@index([fromUserId])
