@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  brand    Brand?    @relation(fields: [brandId], references: [id])
+  brandId  String?
+  creator  Creator?  @relation(fields: [creatorId], references: [id])
+  creatorId String?
+}
+
+model Brand {
+  id        String   @id @default(cuid())
+  name      String
+  website   String? 
+  users     User[]
+  campaigns Campaign[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Creator {
+  id           String   @id @default(cuid())
+  displayName  String
+  bio          String?
+  niches       String?   // CSV for now; normalize later
+  location     String?
+  languages    String?
+  platforms    String?   // CSV of socials
+  packagesJson Json?     // simple MVP
+  users        User[]
+  proposals    Proposal[]
+  reviews      Review[]  @relation("CreatorReviews")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Campaign {
+  id           String    @id @default(cuid())
+  brandId      String
+  title        String
+  objective    String?
+  platforms    String?   // CSV
+  budget       Int?
+  brief        String?
+  status       CampaignStatus @default(DRAFT)
+  proposals    Proposal[]
+  messages     Message[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  brand        Brand     @relation(fields: [brandId], references: [id])
+}
+
+model Proposal {
+  id           String   @id @default(cuid())
+  campaignId   String
+  creatorId    String
+  price        Int?
+  timelineDays Int?
+  notes        String?
+  status       ProposalStatus @default(PENDING)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  campaign     Campaign @relation(fields: [campaignId], references: [id])
+  creator      Creator  @relation(fields: [creatorId], references: [id])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  campaignId String
+  fromUserId String
+  content    String
+  createdAt  DateTime @default(now())
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  creatorId  String
+  brandId    String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  creator    Creator  @relation("CreatorReviews", fields: [creatorId], references: [id])
+  brand      Brand    @relation(fields: [brandId], references: [id])
+}
+
+enum Role {
+  BRAND
+  CREATOR
+  ADMIN
+}
+
+enum CampaignStatus {
+  DRAFT
+  INVITING
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+}
+
+enum ProposalStatus {
+  PENDING
+  COUNTERED
+  ACCEPTED
+  REJECTED
+}
