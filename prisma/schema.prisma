@@ -1,3 +1,6 @@
+// prisma/schema.prisma
+// Hypenest Media – Creator Marketplace (MySQL)
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,99 +10,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      Role
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  brand    Brand?    @relation(fields: [brandId], references: [id])
-  brandId  String?
-  creator  Creator?  @relation(fields: [creatorId], references: [id])
-  creatorId String?
-}
-
-model Brand {
-  id        String   @id @default(cuid())
-  name      String
-  website   String? 
-  users     User[]
-  campaigns Campaign[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Creator {
-  id           String   @id @default(cuid())
-  displayName  String
-  bio          String?
-  niches       String?   // CSV for now; normalize later
-  location     String?
-  languages    String?
-  platforms    String?   // CSV of socials
-  packagesJson Json?     // simple MVP
-  users        User[]
-  proposals    Proposal[]
-  reviews      Review[]  @relation("CreatorReviews")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-
-model Campaign {
-  id           String    @id @default(cuid())
-  brandId      String
-  title        String
-  objective    String?
-  platforms    String?   // CSV
-  budget       Int?
-  brief        String?
-  status       CampaignStatus @default(DRAFT)
-  proposals    Proposal[]
-  messages     Message[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  brand        Brand     @relation(fields: [brandId], references: [id])
-}
-
-model Proposal {
-  id           String   @id @default(cuid())
-  campaignId   String
-  creatorId    String
-  price        Int?
-  timelineDays Int?
-  notes        String?
-  status       ProposalStatus @default(PENDING)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  campaign     Campaign @relation(fields: [campaignId], references: [id])
-  creator      Creator  @relation(fields: [creatorId], references: [id])
-}
-
-model Message {
-  id         String   @id @default(cuid())
-  campaignId String
-  fromUserId String
-  content    String
-  createdAt  DateTime @default(now())
-
-  campaign   Campaign @relation(fields: [campaignId], references: [id])
-}
-
-model Review {
-  id         String   @id @default(cuid())
-  creatorId  String
-  brandId    String
-  rating     Int
-  comment    String?
-  createdAt  DateTime @default(now())
-
-  creator    Creator  @relation("CreatorReviews", fields: [creatorId], references: [id])
-  brand      Brand    @relation(fields: [brandId], references: [id])
-}
+//////////////////////////////////////////////////////
+// Enums
+//////////////////////////////////////////////////////
 
 enum Role {
   BRAND
@@ -120,4 +33,131 @@ enum ProposalStatus {
   COUNTERED
   ACCEPTED
   REJECTED
+}
+
+//////////////////////////////////////////////////////
+// Core Models
+//////////////////////////////////////////////////////
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  role       Role
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Optional associations (one user belongs to either a Brand or a Creator account)
+  brandId    String?
+  creatorId  String?
+
+  brand      Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull, map: "fk_user_brand")
+  creator    Creator? @relation(fields: [creatorId], references: [id], onDelete: SetNull, map: "fk_user_creator")
+
+  @@index([brandId])
+  @@index([creatorId])
+}
+
+model Brand {
+  id         String     @id @default(cuid())
+  name       String
+  website    String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  users      User[]
+  campaigns  Campaign[]
+  reviews    Review[]   @relation("BrandReviews")
+
+  @@index([name])
+}
+
+model Creator {
+  id           String     @id @default(cuid())
+  displayName  String
+  bio          String?
+  niches       String?     // CSV for MVP; normalize later
+  location     String?
+  languages    String?
+  platforms    String?     // CSV of social platforms
+  packagesJson Json?       // MVP: store packages/prices as JSON
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  users        User[]
+  proposals    Proposal[]
+  reviews      Review[]    @relation("CreatorReviews")
+
+  @@index([displayName])
+  @@index([location])
+}
+
+model Campaign {
+  id           String         @id @default(cuid())
+  brandId      String
+  title        String
+  objective    String?
+  platforms    String?        // CSV: IG,TikTok,YT,UGC
+  budgetCents  Int?           // store currency as integer cents
+  brief        String?
+  status       CampaignStatus @default(DRAFT)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  brand        Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade, map: "fk_campaign_brand")
+  proposals    Proposal[]
+  messages     Message[]
+
+  @@index([brandId])
+  @@index([status, updatedAt])
+}
+
+model Proposal {
+  id            String         @id @default(cuid())
+  campaignId    String
+  creatorId     String
+  priceCents    Int?
+  timelineDays  Int?
+  notes         String?
+  status        ProposalStatus @default(PENDING)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  campaign      Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade, map: "fk_proposal_campaign")
+  creator       Creator        @relation(fields: [creatorId], references: [id], onDelete: Cascade, map: "fk_proposal_creator")
+
+  @@index([campaignId])
+  @@index([creatorId])
+  @@index([status, updatedAt])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  campaignId  String
+  fromUserId  String
+  content     String
+  createdAt   DateTime @default(now())
+
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade, map: "fk_message_campaign")
+  fromUser    User     @relation(fields: [fromUserId], references: [id], onDelete: SetNull, map: "fk_message_user")
+
+  @@index([campaignId])
+  @@index([fromUserId])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  creatorId  String
+  brandId    String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  // Explicit relation names for clarity
+  creator    Creator  @relation("CreatorReviews", fields: [creatorId], references: [id], onDelete: Cascade, map: "fk_review_creator")
+  brand      Brand    @relation("BrandReviews",   fields: [brandId],   references: [id], onDelete: Cascade, map: "fk_review_brand")
+
+  @@index([creatorId])
+  @@index([brandId])
+  @@index([rating, createdAt])
 }
